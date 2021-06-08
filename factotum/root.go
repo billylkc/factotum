@@ -18,7 +18,7 @@ import (
 	"github.com/chromedp/chromedp"
 )
 
-// ReqHead as request header
+// ReqHead as request header for the captured GET requests
 type ReqHead struct {
 	URL     string `json:"url"`
 	Method  string `json:"method"`
@@ -33,6 +33,9 @@ type ReqHead struct {
 	ReferrerPolicy   string `json:"referrerPolicy"`
 }
 
+// Run actualls runs the crawler with headless mode, wait til timeout
+// and capture the GET requests during the time with chrome devtool protocol
+// jsonOnly will return json output only, otherwise will also return python/go sample program for the GET requests
 func Run(ctx context.Context, url string, timeout int, verbose, jsonOnly bool) error {
 
 	// Output folder
@@ -63,6 +66,8 @@ func Run(ctx context.Context, url string, timeout int, verbose, jsonOnly bool) e
 		return err
 	}
 
+	// listen network event with chrome devtools protocol
+	fmt.Printf("Listening for network events (XHR) - %d seconds \n", timeout)
 	anotherListenFunc(taskCtx, resultFolder, verbose, jsonOnly)
 
 	chromedp.Run(taskCtx,
@@ -71,6 +76,7 @@ func Run(ctx context.Context, url string, timeout int, verbose, jsonOnly bool) e
 		chromedp.WaitVisible(`body`, chromedp.BySearch),
 	)
 
+	// Print sample program as well, if jsonOnly is false
 	if !jsonOnly {
 		select {
 		case <-time.After(time.Duration(timeout) * time.Second):
@@ -87,7 +93,7 @@ func Run(ctx context.Context, url string, timeout int, verbose, jsonOnly bool) e
 			for _, file := range files {
 				if strings.Contains(file.Name(), "GET") {
 					f := path.Join(resultFolder, file.Name())
-					PrintGetReq(f)
+					PrintGetReq(f) // print go/python programs
 				}
 			}
 
@@ -97,7 +103,10 @@ func Run(ctx context.Context, url string, timeout int, verbose, jsonOnly bool) e
 	return nil
 }
 
+// anotherListenFunc listens for the network event from devtools protocol
+// and listen to xhr events only
 func anotherListenFunc(ctx context.Context, folder string, verbose, jsonOnly bool) {
+
 	chromedp.ListenTarget(
 		ctx,
 		func(ev interface{}) {
@@ -133,7 +142,7 @@ func anotherListenFunc(ctx context.Context, folder string, verbose, jsonOnly boo
 					rbp := network.GetResponseBody(ev.RequestID)
 					body, err := rbp.Do(cdp.WithExecutor(ctx, c.Target))
 					if err != nil {
-						fmt.Println(err)
+						// fmt.Println(err)
 					}
 					if string(body) != "{}" {
 

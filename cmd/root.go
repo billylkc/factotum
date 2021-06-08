@@ -34,11 +34,13 @@ var rootCmd = &cobra.Command{
 			return fmt.Errorf("Please input valid url.\n")
 		}
 
+		fmt.Printf("Capturing events from - %s \n", url)
 		ctx := context.Background()
 		err := factotum.Run(ctx, url, timeout, verbose, jsonOnly)
 		if err != nil {
 			return err
 		}
+		fmt.Printf("\nFinished writting results to output folder. Please check. \n\n")
 
 		return nil
 	},
